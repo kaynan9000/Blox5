@@ -1,20 +1,28 @@
--- [[ KA HUB | FIX DEFINITIVO DELTA ]]
+-- [[ KA HUB | VERSÃO SIMPLIFICADA E FUNCIONAL ]]
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
+-- // CONFIGURAÇÕES (Começa tudo desligado)
+_G.AutoFarm = false
+_G.AutoStats = false
+_G.Weapon = "Melee"
+_G.StatFocus = "Melee"
+
+local LP = game:GetService("Players").LocalPlayer
+local RS = game:GetService("ReplicatedStorage")
+local VIM = game:GetService("VirtualInputManager")
+
+-- // JANELA SIMPLES
 local Window = Rayfield:CreateWindow({
-   Name = "KA HUB | SEA 1 PRO",
-   LoadingTitle = "A Carregar Interface...",
+   Name = "KA HUB | MINI",
+   LoadingTitle = "A carregar...",
    ConfigurationSaving = { Enabled = false }
 })
 
--- CONFIGS INICIAIS
-_G.AutoFarm = false
-_G.Weapon = "Melee"
+local Tab = Window:CreateTab("Principal")
 
-local Tab = Window:CreateTab("Farm Principal")
-
+-- // BOTÕES
 Tab:CreateToggle({
-   Name = "ATIVAR AUTO FARM",
+   Name = "Auto Farm Level",
    CurrentValue = false,
    Callback = function(v) _G.AutoFarm = v end,
 })
@@ -26,38 +34,66 @@ Tab:CreateDropdown({
    Callback = function(v) _G.Weapon = v end,
 })
 
--- LOOP DE FARM (SÓ EXECUTA SE LIGAR O TOGGLE)
+Tab:CreateToggle({
+   Name = "Auto Stats (Pontos)",
+   CurrentValue = false,
+   Callback = function(v) _G.AutoStats = v end,
+})
+
+Tab:CreateDropdown({
+   Name = "Focar Pontos em:",
+   Options = {"Melee", "Defense", "Sword", "Blox Fruit"},
+   CurrentOption = "Melee",
+   Callback = function(v) _G.StatFocus = v end,
+})
+
+-- // LÓGICA DE FARM (SEA 1)
 task.spawn(function()
     while task.wait(0.1) do
         if _G.AutoFarm then
             pcall(function()
-                local lp = game.Players.LocalPlayer
-                local level = lp.Data.Level.Value
-                
-                -- Posições Básicas Sea 1
+                local lvl = LP.Data.Level.Value
                 local qName, qLvl, mName, qPos
-                if level < 10 then
+                
+                -- Tabela de Nível Básica
+                if lvl < 10 then
                     qName = "BanditQuest1"; qLvl = 1; mName = "Bandit"; qPos = CFrame.new(1059, 15, 1550)
-                else
+                elseif lvl < 15 then
                     qName = "JungleQuest"; qLvl = 1; mName = "Monkey"; qPos = CFrame.new(-1598, 35, 153)
+                else
+                    qName = "JungleQuest"; qLvl = 2; mName = "Gorilla"; qPos = CFrame.new(-1598, 35, 153)
                 end
 
-                if not lp.PlayerGui.Main.Quest.Visible then
-                    lp.Character.HumanoidRootPart.CFrame = qPos
-                    game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", qName, qLvl)
+                if not LP.PlayerGui.Main.Quest.Visible then
+                    LP.Character.HumanoidRootPart.CFrame = qPos
+                    RS.Remotes.CommF_:InvokeServer("StartQuest", qName, qLvl)
                 else
-                    local target = workspace.Enemies:FindFirstChild(mName)
-                    if target and target:FindFirstChild("Humanoid") and target.Humanoid.Health > 0 then
+                    local enemy = workspace.Enemies:FindFirstChild(mName)
+                    if enemy and enemy:FindFirstChild("Humanoid") and enemy.Humanoid.Health > 0 then
                         -- Equipar
-                        local tool = lp.Backpack:FindFirstChild(_G.Weapon) or lp.Character:FindFirstChild(_G.Weapon)
-                        if tool then lp.Character.Humanoid:EquipTool(tool) end
-                        -- Ataque
-                        lp.Character.HumanoidRootPart.CFrame = target.HumanoidRootPart.CFrame * CFrame.new(0, 8, 0)
-                        game:GetService("VirtualInputManager"):SendMouseButtonEvent(500, 500, 0, true, game, 0)
-                        game:GetService("VirtualInputManager"):SendMouseButtonEvent(500, 500, 0, false, game, 0)
+                        local tool = LP.Backpack:FindFirstChild(_G.Weapon) or LP.Character:FindFirstChild(_G.Weapon)
+                        if tool then LP.Character.Humanoid:EquipTool(tool) end
+                        -- Farm
+                        LP.Character.HumanoidRootPart.CFrame = enemy.HumanoidRootPart.CFrame * CFrame.new(0, 8, 0)
+                        VIM:SendMouseButtonEvent(500, 500, 0, true, game, 0)
+                        VIM:SendMouseButtonEvent(500, 500, 0, false, game, 0)
                     end
                 end
             end)
         end
     end
 end)
+
+-- // LÓGICA DE STATS
+task.spawn(function()
+    while task.wait(1) do
+        if _G.AutoStats then
+            local p = LP.Data.StatsPoints.Value
+            if p > 0 then
+                RS.Remotes.CommF_:InvokeServer("AddPoint", _G.StatFocus, p)
+            end
+        end
+    end
+end)
+
+Rayfield:Notify({Title = "KA HUB", Content = "Pronto a usar!", Duration = 3})
